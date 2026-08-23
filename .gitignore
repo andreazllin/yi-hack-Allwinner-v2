@@ -21,3 +21,6 @@ src/libwolf_*/
 
 # Artifact created by pack_fw.sh
 scripts/yi-hack-Allwinner-v2/
+
+# Internal use
+AGENTS_internal.md
