@@ -11,16 +11,23 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { DownloadSimple, Warning } from "@phosphor-icons/react";
 import type { FunctionComponent } from "react";
+import { useEffect } from "react";
 import { ErrorState } from "@/components/data-state/error-state";
 import { ConfirmModal } from "@/features/maintenance/components/confirm-modal";
 import { useFirmwareInfo } from "@/features/maintenance/hooks/use-firmware-info";
 import { useUpgradeFirmware } from "@/features/maintenance/hooks/use-upgrade-firmware";
 
 type Props = {
+	// Reported upward so the other cards can lock while this one holds the
+	// camera — a reboot during a firmware flash is the dangerous direction.
+	onBusyChange: (busy: boolean) => void;
 	disabled: boolean;
 };
 
-export const FirmwareCard: FunctionComponent<Props> = ({ disabled }) => {
+export const FirmwareCard: FunctionComponent<Props> = ({
+	disabled,
+	onBusyChange,
+}) => {
 	const { data, isPending, isError, refetch } = useFirmwareInfo();
 	const upgrade = useUpgradeFirmware();
 	const [confirmOpened, confirm] = useDisclosure(false);
@@ -40,6 +47,10 @@ export const FirmwareCard: FunctionComponent<Props> = ({ disabled }) => {
 		confirm.close();
 		upgrade.mutate();
 	};
+
+	useEffect(() => {
+		onBusyChange(upgrade.isPending);
+	}, [upgrade.isPending, onBusyChange]);
 
 	return (
 		<Card withBorder>

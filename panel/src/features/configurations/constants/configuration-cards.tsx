@@ -121,8 +121,14 @@ export function configurationCards({ go2rtcSupported }: Params): CardSpec[] {
 					key: "RTSP_AUDIO",
 					label: "RTSP Audio",
 					description: "Audio codec for the RTSP stream.",
+					// system.conf ships RTSP_AUDIO=yes and links.sh enables audio for
+					// anything that is not "no" or "none", so "yes" is a live value on a
+					// stock camera. The stock UI omits it, which leaves its select blank
+					// and unable to show the camera's real setting — offer it here so the
+					// shipped default round-trips.
 					options: [
 						{ value: "no", label: "Disabled (default)" },
+						{ value: "yes", label: "Enabled (firmware default codec)" },
 						{ value: "pcm", label: "pcm" },
 						{ value: "alaw", label: "alaw" },
 						{ value: "ulaw", label: "ulaw" },

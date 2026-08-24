@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { setConfigs } from "@/api";
 import { getConfigsQueryKey } from "@/api/@tanstack/react-query.gen";
-import { assertCgiOk } from "@/lib/cgi";
+import { assertCgiOk, assertSavableConf } from "@/lib/cgi";
 
 // setConfigsMutation() contributes nothing but a mutationFn, and that one
 // resolves on logical failures too (HTTP 200 + {"error":"true"}), so the SDK is
@@ -11,6 +11,7 @@ export function useSaveSystemConfig() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (config: Record<string, string>) => {
+			assertSavableConf(config);
 			const response = await setConfigs({
 				query: { conf: "system" },
 				// The full config goes back, not just the edited keys: set_configs.sh

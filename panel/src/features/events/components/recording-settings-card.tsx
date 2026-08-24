@@ -17,7 +17,8 @@ import { useSystemConfig } from "@/features/events/hooks/use-system-config";
 
 export const RecordingSettingsCard: FunctionComponent = () => {
 	const [opened, { toggle }] = useDisclosure(false);
-	const { data, isPending, isError, refetch } = useSystemConfig(opened);
+	const { data, isPending, isError, refetch, dataUpdatedAt } =
+		useSystemConfig(opened);
 
 	return (
 		<Card withBorder>
@@ -61,7 +62,15 @@ export const RecordingSettingsCard: FunctionComponent = () => {
 							<Skeleton height={56} />
 						</Stack>
 					)}
-					{data && <RecordingSettingsForm conf={data} />}
+					{data && Object.keys(data).length === 0 && (
+						<Text size="sm" c="dimmed">
+							The camera returned no settings. system.conf may be missing or
+							unreadable on the SD card.
+						</Text>
+					)}
+					{data && Object.keys(data).length > 0 && (
+						<RecordingSettingsForm conf={data} confUpdatedAt={dataUpdatedAt} />
+					)}
 				</Stack>
 			</Collapse>
 		</Card>

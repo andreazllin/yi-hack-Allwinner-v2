@@ -22,9 +22,14 @@ import { useSaveSystemConfig } from "@/features/events/hooks/use-save-system-con
 
 type Props = {
 	conf: Record<string, string>;
+	// Changes on every successful read, even when the values are byte-identical.
+	confUpdatedAt: number;
 };
 
-export const RecordingSettingsForm: FunctionComponent<Props> = ({ conf }) => {
+export const RecordingSettingsForm: FunctionComponent<Props> = ({
+	conf,
+	confUpdatedAt,
+}) => {
 	const save = useSaveSystemConfig();
 
 	const form = useForm({
@@ -42,9 +47,18 @@ export const RecordingSettingsForm: FunctionComponent<Props> = ({ conf }) => {
 	// A save can silently no-op (set_configs.sh only rewrites keys that already
 	// exist in the file), so re-hydrate from what the camera reports once the
 	// refetch lands rather than leaving the typed value on screen.
+	//
+	// Keyed on confUpdatedAt, not on `conf`: TanStack Query's structural sharing
+	// keeps the same object identity when a refetch returns identical values,
+	// which is exactly the silent-no-op case this effect exists for — keyed on
+	// `conf` it would never fire there, leaving the rejected value on screen
+	// looking saved.
+	// confUpdatedAt is the intended trigger; `conf` is read as "whatever the
+	// latest read returned".
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keying on `conf` is what breaks the silent-no-op case described above
 	useEffect(() => {
 		form.reset(toRecordingSettings(conf));
-	}, [conf, form]);
+	}, [confUpdatedAt, form]);
 
 	return (
 		<form
