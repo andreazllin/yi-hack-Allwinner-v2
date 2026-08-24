@@ -52,7 +52,7 @@ importers:
         specifier: ^2.5.10
         version: 2.5.10
       '@hey-api/openapi-ts':
-        specifier: ^0.99.0
+        specifier: 0.99.0
         version: 0.99.0(typescript@6.0.3)
       '@tanstack/router-plugin':
         specifier: ^1.168.35
