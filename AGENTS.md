@@ -1,6 +1,7 @@
 # Purpose of this fork
 
-This is a frontend-only fork: nothing in the firmware itself is changed.
+This is a frontend-only fork: nothing in the firmware itself is changed unless
+specified in [FIRMWARE_CHANGES.md](./docs/FIRMWARE_CHANGES.md).
 
 Everything this fork adds lives at paths upstream does not use — `frontend/`,
 `src/frontend/`, `src/aa-source-mirrors/`, `src/zz-fork-overrides/`, `docs/`
