@@ -1,0 +1,45 @@
+#!/bin/bash
+# Build the frontend and stage it, pre-gzipped, for installation into the image.
+#
+# BusyBox httpd serves foo.js.gz transparently when a client asks for foo.js
+# with Accept-Encoding: gzip, but it does not compress on the fly — so
+# gzipping here is what turns a ~1 MB bundle into ~300 kB on the wire. This is
+# the same thing upstream's compile.www does to its own assets.
+#
+# Set SKIP_FRONTEND=1 to build a firmware image without the frontend.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+set -e
+
+FRONTEND_SRC="$SCRIPT_DIR/../../frontend"
+
+if [ "${SKIP_FRONTEND:-0}" = "1" ]; then
+    echo "SKIP_FRONTEND=1 - building an image without the frontend."
+    mkdir -p ./_install/www/frontend
+    exit 0
+fi
+
+# A prebuilt dist is used as-is; this keeps the firmware build usable on a
+# machine with no Node toolchain (build the frontend elsewhere, commit nothing,
+# copy dist/ in).
+if [ ! -d "$FRONTEND_SRC/dist" ]; then
+    if ! command -v pnpm >/dev/null 2>&1; then
+        echo "ERROR: pnpm not found and $FRONTEND_SRC/dist does not exist."
+        echo "The frontend is the reason this fork exists, so refusing to ship an"
+        echo "image silently missing it. Either install pnpm, or prebuild"
+        echo "frontend/dist elsewhere, or pass SKIP_FRONTEND=1 deliberately."
+        exit 1
+    fi
+    echo "Building the frontend..."
+    ( cd "$FRONTEND_SRC" && pnpm install --frozen-lockfile && pnpm build )
+fi
+
+mkdir -p ./_install/www/frontend
+rsync -a "$FRONTEND_SRC/dist/" ./_install/www/frontend/
+
+echo "Applying GZIP compression to the frontend..."
+find ./_install/www/frontend -type f ! -name '*.gz' -exec gzip -f -9 {} +
+
+echo "Frontend staged."

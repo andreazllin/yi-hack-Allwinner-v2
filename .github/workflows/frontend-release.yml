@@ -1,0 +1,142 @@
+# Fork release: builds the firmware image with the frontend baked in and
+# publishes it, on every push to the default branch.
+#
+# Version scheme: <upstream VERSION>_<short hash>, e.g. 0.3.6_2b904a0.
+# The underscore is what distinguishes a fork release from an upstream
+# untagged build, which pack_fw.sh already labels 0.3.6-<hash> with a hyphen.
+#
+# VERSION is upstream's file and is NEVER edited in the repo — that would
+# conflict on every upstream version bump. It is rewritten in the working tree
+# at build time only, which is enough because pack_fw.sh reads it with
+# `cat VERSION`.
+#
+# The frontend itself is baked in by src/frontend/, a build module that
+# scripts/compile.sh picks up automatically (it loops over src/*), so no
+# upstream file is modified anywhere in this pipeline.
+#
+# Filename carries the `frontend-` prefix per the fork's convention, so it can
+# never collide with an upstream workflow.
+name: frontend-release
+
+on:
+  push:
+    branches:
+      - master
+
+# A second push must not race the first into the same tag.
+concurrency:
+  group: frontend-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  SUNXI_TOOLCHAIN: /opt/yi/toolchain-sunxi-musl
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # pack_fw.sh inspects tags, so the full history is needed.
+          fetch-depth: 0
+
+      - name: Compute the fork version
+        id: version
+        run: |
+          BASE=$(cat VERSION)
+          HASH=$(git rev-parse --short HEAD)
+          VER="${BASE}_${HASH}"
+          echo "base=$BASE"   >> "$GITHUB_OUTPUT"
+          echo "ver=$VER"     >> "$GITHUB_OUTPUT"
+          echo "Releasing $VER (upstream base $BASE)"
+
+      - name: Stop if this version was already released
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ steps.version.outputs.ver }}" >/dev/null; then
+            echo "::notice::Tag ${{ steps.version.outputs.ver }} already exists - nothing to do."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install build deps
+        run: |
+          sudo apt update
+          sudo apt install -y git unzip build-essential \
+            bison bisonc++ libbison-dev autoconf autotools-dev \
+            automake libssl-dev zlib1g-dev libzzip-dev flex libfl-dev \
+            yui-compressor closure-compiler optipng jpegoptim libtidy5deb1 node-less \
+            sassc sass-spec libhtml-tidy-perl libxml2-utils rsync qemu-user-static
+
+      - name: Download toolchain
+        run: |
+          git clone https://github.com/lindenis-org/lindenis-v536-prebuilt
+          sudo mkdir -p ${SUNXI_TOOLCHAIN}
+          sudo cp -r lindenis-v536-prebuilt/gcc/linux-x86/arm/toolchain-sunxi-musl/toolchain ${SUNXI_TOOLCHAIN}/
+
+      # Written before packing, and left uncommitted: pack_fw.sh reads VERSION
+      # with `cat`, and only treats the build as an official release when a tag
+      # on HEAD exactly equals that string. Both halves have to line up or the
+      # image ends up labelled 0.3.6_<hash>-<hash>.
+      - name: Set the build version
+        run: |
+          echo -n "${{ steps.version.outputs.ver }}" > VERSION
+          git tag "${{ steps.version.outputs.ver }}"
+
+      - name: Build
+        run: bash -ex scripts/compile.sh
+
+      - name: Pack
+        run: sudo bash -ex scripts/pack_fw.all.sh
+
+      - name: Confirm the frontend is in the image
+        run: |
+          # A release whose whole purpose is the frontend must not ship without it.
+          if ! ls build/yi-hack/www/frontend/index.html.gz >/dev/null 2>&1; then
+            echo "::error::build/yi-hack/www/frontend/index.html.gz missing - the frontend was not baked in."
+            exit 1
+          fi
+          echo "frontend present: $(find build/yi-hack/www/frontend -type f | wc -l) files"
+
+      - name: Check the version label landed
+        run: |
+          # Catches the VERSION/tag mismatch described above, which would
+          # otherwise ship silently with a doubled hash.
+          if ! ls out/*/*_${{ steps.version.outputs.ver }}.tgz >/dev/null 2>&1; then
+            echo "::error::no artifact named *_${{ steps.version.outputs.ver }}.tgz - version labelling is wrong."
+            ls -R out || true
+            exit 1
+          fi
+          ls out/*/*.tgz
+
+      # Pushed only now, so a failed build does not leave a tag behind.
+      - name: Push the tag
+        run: git push origin "${{ steps.version.outputs.ver }}"
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.ver }}
+          name: ${{ steps.version.outputs.ver }}
+          files: out/**/*.tgz
+          body: |
+            Fork build of upstream **${{ steps.version.outputs.base }}** with the
+            replacement frontend UI baked in, from commit ${{ github.sha }}.
+
+            The frontend is served at `http://<camera>/frontend/`. The stock UI stays
+            at `/` and is the fallback if the frontend misbehaves.
+
+            Untested against hardware by CI — it builds the image, it does not
+            flash one.
