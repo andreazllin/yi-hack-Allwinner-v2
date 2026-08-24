@@ -42,3 +42,24 @@ export function describeQueryError(
 			"The camera did not answer. Check that it is reachable (and CAM_HOST in dev).",
 	};
 }
+
+// set_configs.sh reconstructs each entry as `KEY=VALUE` with jq and then reads
+// the value back with `cut -d'=' -f2`, which keeps only the text before the
+// SECOND `=`. A value containing `=` is therefore silently truncated and the
+// script still answers {"error":"false"} — a password ending in `=` would be
+// saved wrong and lock the user out of whatever it authenticates. There is no
+// server-side signal, so refuse the save here instead.
+export function assertSavableConf(body: unknown): void {
+	if (typeof body !== "object" || body === null) {
+		return;
+	}
+	const offenders = Object.entries(body as Record<string, unknown>)
+		.filter(([, value]) => typeof value === "string" && value.includes("="))
+		.map(([key]) => key);
+	if (offenders.length > 0) {
+		throw new Error(
+			`The camera cannot store an "=" in a value, and would save a truncated ` +
+				`version without reporting an error. Remove it from: ${offenders.join(", ")}.`,
+		);
+	}
+}

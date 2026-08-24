@@ -8,6 +8,7 @@ import {
 	Title,
 } from "@mantine/core";
 import type { FunctionComponent } from "react";
+import { ErrorState } from "@/components/data-state/error-state";
 import { useLinks } from "@/features/status/hooks/use-links";
 
 const LINK_LABELS: {
@@ -27,16 +28,18 @@ const LINK_LABELS: {
 ];
 
 export const StreamLinksCard: FunctionComponent = () => {
-	const { data, isPending, isError } = useLinks();
+	const { data, isPending, isError, refetch } = useLinks();
 
 	return (
 		<Card withBorder>
 			<Stack gap="xs">
 				<Title order={4}>Streams & Snapshots</Title>
 				{isError && (
-					<Text size="sm" c="dimmed">
-						Could not load stream links.
-					</Text>
+					<ErrorState
+						title="Could not load stream links"
+						description="links.sh did not answer, so the RTSP and snapshot URLs are unknown."
+						onRetry={() => refetch()}
+					/>
 				)}
 				{LINK_LABELS.map(({ key, label }) => {
 					// Stream rows are conditional on RTSP config — hide absent ones,
