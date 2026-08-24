@@ -33,4 +33,6 @@ produces the wrong image.
 
 `AGENTS_internal.md` and `docs/internal/` are deliberately untracked, so they
 are absent from a fresh clone. `docs/OPENAPI_DEFINITION.md` is the tracked
-reference for the camera API and the generated client.
+reference for the camera API and the generated client, and
+`docs/MIGRATION.md` covers moving a camera from upstream's firmware to
+this fork's.
