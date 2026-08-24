@@ -1,0 +1,52 @@
+# Frontend CI. The filename is prefixed `frontend-` so it can never collide with an
+# upstream workflow — the fork's one rule is that every file we add lives at a
+# path upstream does not use, which is what keeps rebasing a no-op.
+name: frontend-build
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-build.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # tsc -b && biome check. routeTree.gen.ts is committed, so this works
+      # without generating routes first.
+      - run: pnpm validate
+
+      - run: pnpm build
+
+      # The generated client is committed. If regenerating it produces a diff,
+      # the spec and the client have drifted apart and one of them is stale.
+      - name: check generated client is up to date
+        run: |
+          pnpm generate:sdk
+          if ! git diff --quiet -- src/api; then
+            echo "::error::src/api differs from what openapi-ts generates. Run 'pnpm generate:sdk' and commit."
+            git diff --stat -- src/api
+            exit 1
+          fi
