@@ -38,6 +38,7 @@ client.instance.interceptors.request.use(async (config) => {
 client.instance.interceptors.response.use(
 	(response) => {
 		release();
+		assertParsedJson(response);
 		return response;
 	},
 	(error) => {
@@ -45,3 +46,42 @@ client.instance.interceptors.response.use(
 		return Promise.reject(error);
 	},
 );
+
+// Raised when a response claimed to be JSON but did not parse.
+export class MalformedResponseError extends Error {
+	constructor(url: string | undefined) {
+		super(
+			`The camera returned a malformed JSON response${url ? ` from ${url}` : ""}. ` +
+				"This usually means a value contains a character the firmware does not " +
+				"escape — an SSID or hostname with a quote in it will break status.json.",
+		);
+		this.name = "MalformedResponseError";
+	}
+}
+
+// The CGI scripts print JSON with unescaped printf, so a quote inside an SSID
+// or hostname yields an invalid document. axios's default transform swallows
+// the SyntaxError and hands back the raw string, which then reads as a body
+// where every field is undefined — indistinguishable from a camera that
+// reported nothing. Turn it back into a distinct, reportable failure so the
+// surface shows an error instead of a grid of blanks.
+function assertParsedJson(response: {
+	data: unknown;
+	config: { url?: string; responseType?: string };
+	headers: unknown;
+}): void {
+	if (typeof response.data !== "string") {
+		return;
+	}
+	// Only JSON responses are expected to be objects. Binary and text
+	// endpoints (snapshots, config backups) legitimately return strings.
+	const contentType = String(
+		(response.headers as Record<string, unknown> | undefined)?.[
+			"content-type"
+		] ?? "",
+	);
+	if (!contentType.includes("application/json")) {
+		return;
+	}
+	throw new MalformedResponseError(response.config.url);
+}
