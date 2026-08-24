@@ -74,6 +74,19 @@ Gotchas verified against 0.99.0:
 - `preset.sh` word-splits multi-word backend messages across printf format cycles → malformed JSON with `message` holding only the first word.
 - Snapshots can reboot the camera under load (upstream README) — the stock UI fetches exactly one frame per page load; do not poll aggressively.
 
+## 5b. Over-the-air updates point at this fork
+
+`fw_upgrade.sh` asks GitHub for the latest release of the repo it was compiled against, compares that tag with `/tmp/sd/yi-hack/version`, and downloads `<model_suffix>_<tag>.tgz`. The payload is the **whole yi-hack tree**, so an update ships the firmware and the frontend together — that is what makes the frontend updatable over the air at all.
+
+Left pointing at upstream this is actively harmful: a camera running `0.3.6_<hash>` sees upstream's `0.3.6`, decides the versions differ, and installs upstream's image — replacing the fork and leaving `www/frontend/` behind as a stale orphan (`system.sh` completes an upgrade with `cp -rf * ..`, an overlay, so the directory survives but nothing maintains it).
+
+`src/zz-fork-overrides/` rewrites the three release URLs at build time, deriving the file from upstream's current source rather than vendoring a copy, so an upstream edit to `fw_upgrade.sh` is inherited instead of silently reverted. The slug comes from `FORK_REPO`, else `GITHUB_REPOSITORY` in CI, else the `origin` remote.
+
+Two things to know before renaming anything:
+
+- **The `zz-` prefix is load-bearing.** `scripts/compile.sh` walks `src/*` in glob order and each module's install rsyncs over the previous one, so a module overriding a file shipped by `src/www` must sort *after* `www`. Rename it to something earlier and the override silently reverts.
+- **The build fails loudly** if upstream stops referencing the slug in a recognisable form, if the rewrite count changes, or if the packed image still mentions upstream — rather than shipping an image that updates itself away.
+
 ## 6. Maintenance: API drift is the real work
 
 The frontend depends on undocumented shell behaviour that upstream can change without a release note. On every upstream sync, diff the backend before rebasing:
