@@ -21,10 +21,10 @@ export default defineConfig(({ mode }) => {
 	};
 
 	return {
-		// Absolute base: the frontend is deployed to /tmp/sd/yi-hack/www/frontend/ and
-		// served at /frontend/. A relative base breaks when the URL lacks the
-		// trailing slash.
-		base: "/frontend/",
+		// The frontend is the camera's default UI, served from the document root.
+		// Kept absolute rather than relative so an asset URL never depends on the
+		// depth of the page that requested it.
+		base: "/",
 		plugins: [
 			// Must run before react() — wrong order breaks route generation.
 			tanstackRouter({ target: "react" }),
