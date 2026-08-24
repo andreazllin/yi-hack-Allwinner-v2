@@ -29,6 +29,37 @@ Nothing in the firmware itself is modified. The camera records, streams, detects
 
 ---
 
+## Export your configuration first
+
+Worth doing on both paths — mandatory on Path B, which wipes the card.
+
+On the stock UI: **Maintenance → Save** ("Click to save config"). The browser
+downloads `config.tar.bz2`. It contains every `*.conf` from `yi-hack/etc` plus
+`hostname` — your services, ports, credentials, MQTT settings, camera settings
+and WiFi details.
+
+To restore it afterwards: **Maintenance → Load**, pick the file, and reboot the
+camera when it reports success. The new frontend has the same pair on its own
+Maintenance page, so you can restore from either UI.
+
+The archive is plain firmware configuration and this fork does not change the
+format, so a backup taken from upstream restores onto this fork unchanged.
+
+Three things about the restore that are easy to trip over, all enforced by the
+firmware rather than by us:
+
+- **`load.sh` silently drops any upload over 10000 bytes.** No message, no
+  error — the request just ends. Config archives are normally a couple of KB,
+  but a long crontab can push one over. The frontend blocks oversized files
+  before sending rather than letting them vanish; the stock UI does not.
+- **The archive must contain both `system.conf` and `camera.conf`**, or the
+  restore answers `Upload failed` and changes nothing. A backup made by
+  **Save** always does.
+- **A reboot is required.** The restore writes the files and re-applies the
+  live camera settings, but everything else takes effect on restart.
+
+---
+
 ## Path A — in-place upgrade (keeps your configuration)
 
 `fw_upgrade.sh` checks for a file named exactly `<model_suffix>_x.x.x.tgz` in the SD card root *before* it contacts GitHub. If it finds one, it installs that instead. Upstream's updater will therefore install this fork's image without knowing anything about this repo.
@@ -39,6 +70,10 @@ Nothing in the firmware itself is modified. The camera records, streams, detects
 4. Open the stock UI → **Maintenance**. It should report a local firmware file is available.
 5. Start the upgrade. The camera backs up its configuration, unpacks the image and reboots.
 6. Wait for it to come back — a minute or two — then open `http://<camera-ip>/`.
+
+Path A restores your configuration by itself, so the export above is a safety
+net rather than a step — but it costs one click and it is the only way back if
+the upgrade goes wrong.
 
 **What is preserved:** everything in `yi-hack/etc/` — your `system.conf`, `camera.conf`, MQTT settings, WiFi credentials, passwords. The script copies that directory out before unpacking and copies it back in afterwards. Any `*.tar.gz` inside `etc/` is dropped.
 
@@ -60,6 +95,8 @@ Use this if the camera is unreachable, the SD card is suspect, or you want a kno
 3. Optionally set WiFi credentials up front: rename `Factory/configure_wifi.cfg.ori` to `Factory/configure_wifi.cfg` and edit it.
 4. Insert the card and power the camera on. Give it a minute.
 5. Open `http://<camera-ip>/`.
+6. Restore your settings: **Maintenance → Load**, pick the `config.tar.bz2` you
+   exported, then reboot.
 
 The camera needs to keep this card — the hack lives on it.
 
@@ -100,6 +137,6 @@ Or do a clean install (Path B) with upstream's archive. Either way the camera go
 
 ## State of this guide
 
-Written from the firmware source — `fw_upgrade.sh` for the upgrade paths and preconditions, `system.sh` for how an upgrade completes on reboot, and upstream's README for the clean install. The release archive layout was checked against a real published asset.
+Written from the firmware source — `fw_upgrade.sh` for the upgrade paths and preconditions, `save.sh` and `load.sh` for the configuration export and restore, `system.sh` for how an upgrade completes on reboot, and upstream's README for the clean install. The release archive layout was checked against a real published asset.
 
 **None of it has been exercised on a camera.** The steps follow upstream's own documented procedures, and the local-file path is a feature of upstream's updater rather than anything this fork adds, but treat the first migration as the test. Keep a backup, and keep `/panel/` in mind as the fallback.
