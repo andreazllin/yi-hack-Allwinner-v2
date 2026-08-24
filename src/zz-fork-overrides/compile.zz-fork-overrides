@@ -1,0 +1,74 @@
+#!/bin/bash
+# Point the over-the-air updater at this fork instead of upstream.
+#
+# fw_upgrade.sh asks GitHub for the latest release of the repo it is compiled
+# against, compares that tag with /tmp/sd/yi-hack/version, and downloads
+# <model_suffix>_<tag>.tgz. Left pointing at upstream, a camera running this
+# fork would see its own version (0.3.6_<hash>) differ from upstream's tag
+# (0.3.6), report an upgrade, and then install upstream's image — replacing
+# this fork and leaving the frontend behind as a stale orphan.
+#
+# The upgrade payload is the whole yi-hack tree, so pointing it here is also
+# what makes the frontend updatable over the air: a new release ships the
+# firmware and the frontend together.
+#
+# The substitution is derived from upstream's current file rather than being a
+# vendored copy, so an upstream edit to fw_upgrade.sh is inherited instead of
+# silently reverted. If upstream ever stops referencing the slug in a form
+# this recognises, the build fails loudly rather than shipping an image that
+# still updates from upstream.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+set -e
+
+UPSTREAM_SLUG="roleoroleo/yi-hack-Allwinner-v2"
+STOCK="../www/httpd/cgi-bin/fw_upgrade.sh"
+
+# GITHUB_REPOSITORY is set for us in CI; otherwise read the origin remote, so
+# a fork of this fork updates from itself without editing anything.
+if [ -z "${FORK_REPO:-}" ]; then
+    if [ -n "${GITHUB_REPOSITORY:-}" ]; then
+        FORK_REPO="$GITHUB_REPOSITORY"
+    else
+        # Strip the optional .git suffix first, then keep the last two path
+        # components. Done in two passes because a non-greedy operator is not
+        # available in POSIX ERE (BSD sed rejects it outright).
+        ORIGIN=$(git -C "$SCRIPT_DIR" config --get remote.origin.url || true)
+        FORK_REPO=$(echo "$ORIGIN" | sed -E 's#\.git$##' | sed -E 's#^.*[:/]([^/:]+/[^/]+)$#\1#')
+    fi
+fi
+
+if [ -z "$FORK_REPO" ] || [ "$FORK_REPO" = "$UPSTREAM_SLUG" ]; then
+    echo "ERROR: could not determine this fork's repo slug (got '$FORK_REPO')."
+    echo "Set FORK_REPO=owner/name, or the built image will update from upstream"
+    echo "and overwrite itself."
+    exit 1
+fi
+
+EXPECTED=$(grep -c "$UPSTREAM_SLUG" "$STOCK" || true)
+if [ "$EXPECTED" -eq 0 ]; then
+    echo "ERROR: $STOCK no longer mentions $UPSTREAM_SLUG."
+    echo "Upstream changed how the updater resolves releases. Re-read the"
+    echo "script and update this module before releasing."
+    exit 1
+fi
+
+mkdir -p ./_install/www/cgi-bin
+sed "s#$UPSTREAM_SLUG#$FORK_REPO#g" "$STOCK" > ./_install/www/cgi-bin/fw_upgrade.sh
+chmod +x ./_install/www/cgi-bin/fw_upgrade.sh
+
+# The CGI scripts are executed, never served, so they are NOT gzipped -
+# compile.www excludes cgi-bin from its gzip pass for the same reason.
+ACTUAL=$(grep -c "$FORK_REPO" ./_install/www/cgi-bin/fw_upgrade.sh || true)
+if [ "$ACTUAL" -ne "$EXPECTED" ]; then
+    echo "ERROR: rewrote $ACTUAL of $EXPECTED release URLs in fw_upgrade.sh."
+    exit 1
+fi
+if grep -q "$UPSTREAM_SLUG" ./_install/www/cgi-bin/fw_upgrade.sh; then
+    echo "ERROR: fw_upgrade.sh still points at upstream after rewriting."
+    exit 1
+fi
+
+echo "fw_upgrade.sh now updates from $FORK_REPO ($ACTUAL URLs rewritten)."
