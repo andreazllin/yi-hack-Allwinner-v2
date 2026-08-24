@@ -1,0 +1,7 @@
+#!/bin/bash
+# Nothing to install: this module only stages sources for later modules.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+exit 0

@@ -1,0 +1,77 @@
+#!/bin/bash
+# busybox: init.busybox downloads https://busybox.net/downloads/... but that
+# host fails TLS negotiation from GitHub-hosted runners ("Unable to establish
+# SSL connection" after ~75s), which breaks the whole firmware build.
+#
+# It should fall back to the GitHub mirror, but cannot: the fallback test is
+# written `if [ $? !=0 ]` with no space before the 0, so it is parsed as a
+# one-argument test, errors with "unary operator expected", and takes the
+# else branch — which untars an archive that was never downloaded. That is an
+# upstream bug in a file this fork does not modify.
+#
+# init.busybox only downloads when the archive is absent, so staging the file
+# here sidesteps both problems. The mirror is checked against the sha256 of
+# the tarball published on busybox.net (verified identical), so a compromised
+# or truncated mirror fails the build instead of silently building something
+# else.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+set -e
+
+# Computed with whichever tool the build machine has: GNU coreutils on the
+# runners, BSD shasum on a Mac. Neither's -c/--status flags are portable
+# between the two, so the digest is compared as a plain string.
+sha256_of()
+{
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" 2>/dev/null | awk '{print $1}'
+    else
+        shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'
+    fi
+}
+
+fetch_verified()
+{
+    local DEST="$1"
+    local SHA256="$2"
+    shift 2
+
+    if [ -f "$DEST" ] && [ "$(sha256_of "$DEST")" = "$SHA256" ]; then
+        echo "  $(basename "$DEST") already present and verified."
+        return 0
+    fi
+
+    for URL in "$@"; do
+        echo "  fetching $(basename "$DEST") from $URL"
+        # --tries/--timeout so an unreachable host fails in seconds, not after
+        # the ~75s hang that made the original failure so slow to diagnose.
+        if wget -q --tries=2 --timeout=20 -O "$DEST.part" "$URL"; then
+            local GOT
+            GOT="$(sha256_of "$DEST.part")"
+            if [ "$GOT" = "$SHA256" ]; then
+                mv "$DEST.part" "$DEST"
+                echo "  ok, sha256 verified."
+                return 0
+            fi
+            echo "  checksum mismatch from $URL (got $GOT), discarding."
+        fi
+        rm -f "$DEST.part"
+    done
+
+    echo "ERROR: could not fetch $(basename "$DEST") from any mirror."
+    return 1
+}
+
+BUSYBOX_VERSION="1.36.1"
+BUSYBOX_SHA256="b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314"
+
+echo "Staging third-party sources..."
+fetch_verified \
+    "../busybox/busybox-${BUSYBOX_VERSION}.tar.bz2" \
+    "$BUSYBOX_SHA256" \
+    "https://sources.buildroot.net/busybox/busybox-${BUSYBOX_VERSION}.tar.bz2" \
+    "https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2"
+
+mkdir -p ./_install
