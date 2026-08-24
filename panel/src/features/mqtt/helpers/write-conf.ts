@@ -1,5 +1,5 @@
 import { type SetConfigsData, setConfigs } from "@/api";
-import { assertCgiOk } from "@/lib/cgi";
+import { assertCgiOk, assertSavableConf } from "@/lib/cgi";
 
 type Conf = NonNullable<SetConfigsData["query"]>["conf"];
 
@@ -8,6 +8,7 @@ type Conf = NonNullable<SetConfigsData["query"]>["conf"];
 // body as a success. The body is one flat KEY->value map, which axios
 // stringifies to the single line that set_configs' `read -r` requires.
 export async function writeConf(conf: Conf, body: Record<string, string>) {
+	assertSavableConf(body);
 	const response = await setConfigs({
 		query: { conf },
 		body,

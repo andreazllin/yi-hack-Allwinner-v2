@@ -11,17 +11,25 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { ArrowClockwise } from "@phosphor-icons/react";
 import type { FunctionComponent } from "react";
+import { useEffect } from "react";
 import { ConfirmModal } from "@/features/maintenance/components/confirm-modal";
 import { useRebootCamera } from "@/features/maintenance/hooks/use-reboot-camera";
 
 type Props = {
+	// Reported upward so the other cards can lock while this one holds the
+	// camera — a reboot during a firmware flash is the dangerous direction.
+	onBusyChange: (busy: boolean) => void;
 	rebooting: boolean;
+	// True while another card holds the camera (e.g. a firmware flash).
+	disabled: boolean;
 	onRebootStarted: () => void;
 };
 
 export const RebootCard: FunctionComponent<Props> = ({
 	rebooting,
 	onRebootStarted,
+	onBusyChange,
+	disabled,
 }) => {
 	const reboot = useRebootCamera();
 	const [confirmOpened, confirm] = useDisclosure(false);
@@ -30,6 +38,10 @@ export const RebootCard: FunctionComponent<Props> = ({
 		confirm.close();
 		reboot.mutate(undefined, { onSuccess: onRebootStarted });
 	};
+
+	useEffect(() => {
+		onBusyChange(reboot.isPending);
+	}, [reboot.isPending, onBusyChange]);
 
 	return (
 		<Card withBorder>
@@ -61,14 +73,16 @@ export const RebootCard: FunctionComponent<Props> = ({
 				) : (
 					<>
 						<Text size="sm" c="dimmed">
-							reboot.sh syncs the SD card, stops the MQTT client and restarts
-							the camera.
+							{disabled
+								? "Another maintenance action is running. Rebooting now could interrupt it."
+								: "reboot.sh syncs the SD card, stops the MQTT client and restarts the camera."}
 						</Text>
 						<Group>
 							<Button
 								color="red"
 								leftSection={<ArrowClockwise size={16} />}
 								loading={reboot.isPending}
+								disabled={disabled}
 								onClick={confirm.open}
 							>
 								Reboot camera

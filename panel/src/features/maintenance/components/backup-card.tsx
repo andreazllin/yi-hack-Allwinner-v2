@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { DownloadSimple, UploadSimple } from "@phosphor-icons/react";
-import { type FunctionComponent, useState } from "react";
+import { type FunctionComponent, useEffect, useState } from "react";
 import { ConfirmModal } from "@/features/maintenance/components/confirm-modal";
 import {
 	MAX_CONFIG_ARCHIVE_BYTES,
@@ -19,10 +19,16 @@ import {
 import { useRestoreConfig } from "@/features/maintenance/hooks/use-restore-config";
 
 type Props = {
+	// Reported upward so the other cards can lock while this one holds the
+	// camera — a reboot during a firmware flash is the dangerous direction.
+	onBusyChange: (busy: boolean) => void;
 	disabled: boolean;
 };
 
-export const BackupCard: FunctionComponent<Props> = ({ disabled }) => {
+export const BackupCard: FunctionComponent<Props> = ({
+	disabled,
+	onBusyChange,
+}) => {
 	const restore = useRestoreConfig();
 	const [archive, setArchive] = useState<File | null>(null);
 	const [confirmOpened, confirm] = useDisclosure(false);
@@ -37,6 +43,10 @@ export const BackupCard: FunctionComponent<Props> = ({ disabled }) => {
 		confirm.close();
 		restore.mutate({ body: { "files[]": archive } });
 	};
+
+	useEffect(() => {
+		onBusyChange(restore.isPending);
+	}, [restore.isPending, onBusyChange]);
 
 	return (
 		<Card withBorder>

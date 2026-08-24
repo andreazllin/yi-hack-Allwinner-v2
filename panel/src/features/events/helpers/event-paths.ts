@@ -19,3 +19,18 @@ export function isEventDirName(value: string): boolean {
 export function buildRecordUrl(dir: string, filename: string): string {
 	return `/record/${dir}/${filename}`;
 }
+
+// eventsfile.sh only lists recordings whose name is exactly 12 or 14 chars and
+// ends in .mp4, with 'M' and 'S' markers at fixed offsets — the same offsets
+// eventsfiledel.sh's validateRecFile checks against the combined
+// "<dirname>/<filename>" string (27 or 29 chars total).
+const EVENT_FILE_PATTERN = /^\d{2}(?:\d{2})?M\d{2}S\d{2}\.mp4$/;
+
+// Guards the value interpolated into eventsfiledel.sh's `rm -f` as root. The
+// delete call sends the "<dir>/<file>" separator unescaped (see
+// use-delete-event-file.ts for why), which disables the query serializer's
+// escaping for that value — so this is the only thing standing between a
+// filename and the shell.
+export function isEventFileName(value: string): boolean {
+	return EVENT_FILE_PATTERN.test(value);
+}

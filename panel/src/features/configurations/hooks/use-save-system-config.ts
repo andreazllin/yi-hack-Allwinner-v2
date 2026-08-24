@@ -5,7 +5,7 @@ import {
 	getConfigsQueryKey,
 	setConfigsMutation,
 } from "@/api/@tanstack/react-query.gen";
-import { assertCgiOk } from "@/lib/cgi";
+import { assertCgiOk, assertSavableConf } from "@/lib/cgi";
 
 type Params = {
 	// Both pages write conf=system, so the toast has to say which one saved.
@@ -21,6 +21,7 @@ export function useSaveSystemConfig({ surface }: Params) {
 		// here, inside mutationFn.
 		...setConfigsMutation(),
 		mutationFn: async (variables: Options<SetConfigsData>) => {
+			assertSavableConf(variables.body);
 			const response = await setConfigs({ ...variables, throwOnError: true });
 			return assertCgiOk(response.data);
 		},
