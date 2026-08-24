@@ -1,11 +1,15 @@
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
-import "@fontsource/geist-sans/400.css";
-import "@fontsource/geist-sans/500.css";
-import "@fontsource/geist-sans/600.css";
-import "@fontsource/geist-sans/700.css";
-import "@fontsource/geist-mono/400.css";
-import "@fontsource/geist-mono/600.css";
+// latin-only subsets: geist-mono's default entrypoint also ships Cyrillic,
+// Vietnamese and symbol faces this UI never renders, and they would sit on
+// the camera's SD card and re-download on every load (BusyBox sends no
+// cache headers).
+import "@fontsource/geist-sans/latin-400.css";
+import "@fontsource/geist-sans/latin-500.css";
+import "@fontsource/geist-sans/latin-600.css";
+import "@fontsource/geist-sans/latin-700.css";
+import "@fontsource/geist-mono/latin-400.css";
+import "@fontsource/geist-mono/latin-600.css";
 
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
