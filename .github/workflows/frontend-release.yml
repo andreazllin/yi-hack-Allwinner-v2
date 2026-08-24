@@ -96,10 +96,28 @@ jobs:
           git tag "${{ steps.version.outputs.ver }}"
 
       - name: Build
+        # GITHUB_REPOSITORY points the over-the-air updater at this fork
+        # (src/zz-fork-overrides). Without it a released image would check
+        # upstream for updates and replace itself.
         run: bash -ex scripts/compile.sh
 
       - name: Pack
         run: sudo bash -ex scripts/pack_fw.all.sh
+
+      - name: Confirm the updater points at this fork
+        run: |
+          # An image that still checks upstream would offer an "upgrade" that
+          # overwrites this fork, so this must never ship wrong.
+          FW=build/yi-hack/www/cgi-bin/fw_upgrade.sh
+          if grep -q "roleoroleo/yi-hack-Allwinner-v2" "$FW"; then
+            echo "::error::$FW still points at upstream."
+            exit 1
+          fi
+          if ! grep -q "${GITHUB_REPOSITORY}/releases" "$FW"; then
+            echo "::error::$FW does not reference ${GITHUB_REPOSITORY} releases."
+            exit 1
+          fi
+          echo "updater points at ${GITHUB_REPOSITORY}"
 
       - name: Confirm the frontend is in the image
         run: |

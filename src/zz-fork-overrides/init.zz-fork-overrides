@@ -1,0 +1,18 @@
+#!/bin/bash
+# Replaces stock CGI scripts with fork-specific versions, derived at build
+# time from upstream's own source.
+#
+# The zz- prefix is load-bearing: scripts/compile.sh iterates src/* in glob
+# order and each module's install rsyncs over the previous one, so a module
+# that overrides a file shipped by src/www must sort AFTER "www". Renaming
+# this directory to something alphabetically earlier silently reverts the
+# override — www would win.
+#
+# Nothing upstream is modified: the stock file is read, transformed, and
+# written into this module's own _install tree, which keeps the fork additive
+# and rebasing a no-op.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+rm -rf ./_install
