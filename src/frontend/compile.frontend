@@ -25,15 +25,27 @@ fi
 # machine with no Node toolchain (build the frontend elsewhere, commit nothing,
 # copy dist/ in).
 if [ ! -d "$FRONTEND_SRC/dist" ]; then
-    if ! command -v pnpm >/dev/null 2>&1; then
-        echo "ERROR: pnpm not found and $FRONTEND_SRC/dist does not exist."
-        echo "The frontend is the reason this fork exists, so refusing to ship an"
-        echo "image silently missing it. Either install pnpm, or prebuild"
-        echo "frontend/dist elsewhere, or pass SKIP_FRONTEND=1 deliberately."
+    # Upstream's build workflow installs no Node toolchain, and this fork does
+    # not edit upstream files, so pnpm has to be found from here. corepack
+    # ships with Node and reads "packageManager" out of frontend/package.json,
+    # so it runs the same pnpm version the frontend CI pins.
+    if command -v pnpm >/dev/null 2>&1; then
+        PNPM="pnpm"
+    elif command -v corepack >/dev/null 2>&1; then
+        # Without this corepack asks before downloading pnpm, and a build has
+        # nobody to answer.
+        export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+        PNPM="corepack pnpm"
+    else
+        echo "ERROR: neither pnpm nor corepack found, and $FRONTEND_SRC/dist"
+        echo "does not exist. The frontend is the reason this fork exists, so"
+        echo "refusing to ship an image silently missing it. Either install"
+        echo "Node or pnpm, or prebuild frontend/dist elsewhere, or pass"
+        echo "SKIP_FRONTEND=1 deliberately."
         exit 1
     fi
     echo "Building the frontend..."
-    ( cd "$FRONTEND_SRC" && pnpm install --frozen-lockfile && pnpm build )
+    ( cd "$FRONTEND_SRC" && $PNPM install --frozen-lockfile && $PNPM build )
 fi
 
 mkdir -p ./_install/www/frontend
