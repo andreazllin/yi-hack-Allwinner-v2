@@ -21,6 +21,10 @@ import {
 } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+// Side-effect import: configures the generated API client (same-origin
+// baseURL, request concurrency cap, malformed-JSON detection). Must run
+// before any query fires.
+import "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import { theme } from "@/lib/theme";
 import { routeTree } from "./routeTree.gen";
