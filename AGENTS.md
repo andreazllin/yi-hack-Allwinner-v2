@@ -4,7 +4,7 @@ This is a frontend-only fork: nothing in the firmware itself is changed unless
 specified in [FIRMWARE_CHANGES.md](./docs/FIRMWARE_CHANGES.md).
 
 Everything this fork adds lives at paths upstream does not use — `frontend/`,
-`src/frontend/`, `src/aa-source-mirrors/`, `src/zz-fork-overrides/`, `docs/`
+`src/zz-frontend/`, `src/aa-source-mirrors/`, `src/zz-fork-overrides/`, `docs/`
 and `.github/workflows/frontend-*.yml` — so `git rebase upstream/master`
 stays a no-op. The one exception is the root `.gitignore`, which gains a few
 lines because a root-level path cannot be ignored from anywhere else.
@@ -23,8 +23,8 @@ rsyncs over the previous one, which makes the ordering prefixes load-bearing:
 | Module | Why the name |
 |---|---|
 | `aa-source-mirrors` | must run **before** the modules whose sources it stages |
-| `frontend` | builds and installs the UI into `www/frontend/` |
 | `zz-fork-overrides` | must run **after** `www` to override a file `www` ships |
+| `zz-frontend` | must run **after** `www` to win the document root, and relocates the stock UI to `/panel/` |
 
 Renaming any of those three silently breaks it — the build still succeeds and
 produces the wrong image.

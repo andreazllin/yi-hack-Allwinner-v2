@@ -21,12 +21,18 @@ set -eu
 
 : "${CAM_HOST:?set CAM_HOST to the camera address}"
 SSH_USER="${CAM_SSH_USER:-root}"
-TARGET="/tmp/sd/yi-hack/www/frontend/"
+TARGET="/tmp/sd/yi-hack/www/"
 
 pnpm build
 
 find dist -type f ! -name '*.gz' -exec gzip -9 {} +
 
-rsync -a --delete dist/ "$SSH_USER@$CAM_HOST:$TARGET"
+# --delete is scoped to assets/ ON PURPOSE. The frontend now lives at the
+# document root, which it shares with the firmware's own www tree (cgi-bin,
+# pages, js, css, img, panel). A --delete against the root would erase all of
+# it, including the CGI scripts the camera is driven by. Only assets/ is
+# exclusively ours, so only assets/ is pruned; index.html is copied over.
+rsync -a --delete dist/assets/ "$SSH_USER@$CAM_HOST:${TARGET}assets/"
+rsync -a dist/index.html.gz "$SSH_USER@$CAM_HOST:$TARGET"
 
-echo "deployed to http://$CAM_HOST/frontend/  (stock UI remains at /)"
+echo "deployed to http://$CAM_HOST/  (stock UI at /panel/)"
