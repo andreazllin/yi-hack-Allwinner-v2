@@ -1,3 +1,5 @@
+import { MalformedResponseError } from "@/lib/api-client";
+
 // Every CGI failure is HTTP 200 with {"error":"true"} — transport-level
 // success says nothing. Run response bodies through this before trusting
 // them, so logical failures surface as thrown errors (and land in
@@ -16,4 +18,27 @@ export function stripNullKey<T extends Record<string, unknown>>(
 ): Omit<T, "NULL"> {
 	const { NULL: _ignored, ...rest } = conf;
 	return rest;
+}
+
+// Distinguishing a malformed reply from an unreachable camera matters: the
+// fixes are different (a quote in an SSID or hostname vs. a network problem),
+// and a wrong hint sends the reader looking in the wrong place.
+export function describeQueryError(
+	error: unknown,
+	surface: string,
+): { title: string; description: string } {
+	if (error instanceof MalformedResponseError) {
+		return {
+			title: `The camera's ${surface} response was malformed`,
+			description:
+				"The firmware prints JSON without escaping values, so a quote in an " +
+				"SSID or hostname breaks the document. Renaming the network or the " +
+				"camera fixes it.",
+		};
+	}
+	return {
+		title: `Could not load ${surface}`,
+		description:
+			"The camera did not answer. Check that it is reachable (and CAM_HOST in dev).",
+	};
 }

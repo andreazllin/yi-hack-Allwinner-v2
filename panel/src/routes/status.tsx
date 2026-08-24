@@ -10,17 +10,17 @@ import {
 	wifiStrengthPercent,
 } from "@/features/status/helpers/format";
 import { useStatus } from "@/features/status/hooks/use-status";
+import { describeQueryError } from "@/lib/cgi";
 
 const StatusPage: FunctionComponent = () => {
-	const { data, isPending, isError, refetch } = useStatus();
+	const { data, isPending, isError, error, refetch } = useStatus();
 
 	if (isError) {
 		return (
 			<Stack gap="md">
 				<Title order={2}>Status</Title>
 				<ErrorState
-					title="Could not load camera status"
-					description="The camera did not answer status.json. Check that it is reachable (and CAM_HOST in dev)."
+					{...describeQueryError(error, "status")}
 					onRetry={() => refetch()}
 				/>
 			</Stack>
