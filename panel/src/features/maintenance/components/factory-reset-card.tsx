@@ -11,17 +11,23 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
-import { type FunctionComponent, useState } from "react";
+import { type FunctionComponent, useEffect, useState } from "react";
 import { ConfirmModal } from "@/features/maintenance/components/confirm-modal";
 import { useResetConfig } from "@/features/maintenance/hooks/use-reset-config";
 
 type Props = {
+	// Reported upward so the other cards can lock while this one holds the
+	// camera — a reboot during a firmware flash is the dangerous direction.
+	onBusyChange: (busy: boolean) => void;
 	disabled: boolean;
 };
 
 const CONFIRM_WORD = "RESET";
 
-export const FactoryResetCard: FunctionComponent<Props> = ({ disabled }) => {
+export const FactoryResetCard: FunctionComponent<Props> = ({
+	disabled,
+	onBusyChange,
+}) => {
 	const reset = useResetConfig();
 	const [confirmOpened, confirm] = useDisclosure(false);
 	const [typed, setTyped] = useState("");
@@ -35,6 +41,10 @@ export const FactoryResetCard: FunctionComponent<Props> = ({ disabled }) => {
 		close();
 		reset.mutate();
 	};
+
+	useEffect(() => {
+		onBusyChange(reset.isPending);
+	}, [reset.isPending, onBusyChange]);
 
 	return (
 		<Card withBorder>

@@ -543,7 +543,7 @@ function timelapseRoute(ctx) {
 	send(ctx, "", null); // any other action: completely empty response
 }
 
-function fwUpgrade(ctx) {
+async function fwUpgrade(ctx) {
 	const raw = rawQuery(ctx.req);
 	if (QS_BLOCK.test(raw)) return send(ctx, ERR_TRUE);
 	if (raw.split("=")[0] !== "get") return send(ctx, "", null);
@@ -554,8 +554,13 @@ function fwUpgrade(ctx) {
 			ctx,
 			'{"error":"false","fw_version":"0.5.4","latest_fw":"0.5.5","local_fw":false}',
 		);
-	if (mode === "upgrade")
+	if (mode === "upgrade") {
+		// A real flash downloads an image and writes it, so the response is far
+		// from instant. Hold it for a few seconds: an upgrade that returns in
+		// microseconds hides every in-flight state the panel has to get right.
+		await sleep(4000);
 		return send(ctx, "No new firmware available.\n", "text/html");
+	}
 	send(ctx, "", null);
 }
 

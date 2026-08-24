@@ -2,6 +2,10 @@ import { notifications } from "@mantine/notifications";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteEventFile } from "@/api";
 import { getEventFilesQueryKey } from "@/api/@tanstack/react-query.gen";
+import {
+	isEventDirName,
+	isEventFileName,
+} from "@/features/events/helpers/event-paths";
 import { assertCgiOk } from "@/lib/cgi";
 
 type Variables = {
@@ -10,16 +14,31 @@ type Variables = {
 };
 
 // eventsfiledel.sh is a MUTATING GET — wrapped by hand, like the directory
-// delete. Unlike `dir`, its `file` parameter IS validated by the firmware
-// (validateRecFile: 27 or 29 chars with Y/M/D/H/M/S markers at fixed offsets),
-// so a rejected path comes back as {"error":"true"} and assertCgiOk surfaces
-// it; there is no second copy of that check here.
+// delete.
+//
+// The `/` between dirname and filename MUST reach the camera unescaped, so the
+// query serializer's escaping is disabled for this call. Percent-encoding it as
+// %2F breaks the delete twice over: `%` is in validateQueryString's blocklist,
+// so the script answers {"error":"true"} and deletes nothing; and even past that
+// gate the literal "%2F" would make `rm -f` target a path that does not exist,
+// which `rm -f` reports as success. Every delete failed silently before this.
+//
+// allowReserved turns escaping off for the whole value, and the script
+// interpolates it unquoted into `rm -f` as root, so both halves are validated
+// here first. The firmware's own validateRecFile is not a safety net worth
+// relying on — it only checks length and a few marker offsets.
 export function useDeleteEventFile() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async ({ dir, filename }: Variables) => {
+			if (!isEventDirName(dir) || !isEventFileName(filename)) {
+				throw new Error(
+					"Refusing to delete: the name is not one the camera could have produced.",
+				);
+			}
 			const response = await deleteEventFile({
 				query: { file: `${dir}/${filename}` },
+				querySerializer: { allowReserved: true },
 				throwOnError: true,
 			});
 			return assertCgiOk(response.data);

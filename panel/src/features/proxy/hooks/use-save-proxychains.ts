@@ -5,7 +5,7 @@ import {
 	getConfigsQueryKey,
 	setConfigsMutation,
 } from "@/api/@tanstack/react-query.gen";
-import { assertCgiOk } from "@/lib/cgi";
+import { assertCgiOk, assertSavableConf } from "@/lib/cgi";
 
 export function useSaveProxychains() {
 	const queryClient = useQueryClient();
@@ -15,6 +15,7 @@ export function useSaveProxychains() {
 		// failure is an HTTP 200 — so it is replaced by a guarded call that
 		// puts logical failures in the mutation's error state.
 		mutationFn: async (variables: Options<SetConfigsData>) => {
+			assertSavableConf(variables.body);
 			const response = await setConfigs({ ...variables, throwOnError: true });
 			return assertCgiOk(response.data);
 		},
