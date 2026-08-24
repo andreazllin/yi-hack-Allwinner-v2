@@ -1,6 +1,6 @@
 # The OpenAPI definition: what it is, how it was made, how to maintain it
 
-The camera's HTTP API is described by **`panel/yi-hack-openapi.yaml`** (OpenAPI 3.0.3 — 27 paths, 27 operations, 22 component schemas). The panel's TypeScript client in `panel/src/api/` is generated from it. This document tells the next agent how the definition was produced, which modelling decisions are deliberate, and how to extend or re-verify it when upstream changes.
+The camera's HTTP API is described by **`frontend/yi-hack-openapi.yaml`** (OpenAPI 3.0.3 — 27 paths, 27 operations, 22 component schemas). The frontend's TypeScript client in `frontend/src/api/` is generated from it. This document tells the next agent how the definition was produced, which modelling decisions are deliberate, and how to extend or re-verify it when upstream changes.
 
 ## 1. What the API actually is
 
@@ -36,13 +36,13 @@ Cross-checks that catch real bugs: grep for who *writes* a config file, not just
 - **Multiple content types under one `200`** for `getSnapshot` (`image/jpeg`, the literal non-standard `image/jpeg;base64`, `application/json`), `getLastRecordedVideo` (`video/mp4; charset=utf-8` — the charset param is really emitted), `firmwareUpgrade`. Splitting them into separate paths would misrepresent the API.
 - **`wifi` is one POST operation** covering both modes. The firmware serves `action=scan` as GET and `action=save` as POST-with-body; GET+requestBody is undefined in 3.0, so POST was chosen and the description records the scan-is-GET reality.
 - **`conf` on get/set_configs is an advisory enum.** The scripts have NO allowlist — the value is interpolated into `etc/<X>.conf` (path traversal and all). The enum lists the six values the firmware/UI actually use.
-- **The `*Conf` component schemas (CameraConf, SystemConf, MqttConf, MqttAdvertiseConf, PtzPresetsConf, ProxychainsConf) are intentionally unreferenced.** 3.0 cannot switch a response schema on a query parameter, but the generator still emits their types and the panel needs them. They are typed from the shipped `.conf` templates under `src/static/static/yi-hack/etc/` (ground truth for key lists). Redocly's 6 `no-unused-components` warnings + 1 `info-license` warning are accepted; **errors must stay at zero.**
+- **The `*Conf` component schemas (CameraConf, SystemConf, MqttConf, MqttAdvertiseConf, PtzPresetsConf, ProxychainsConf) are intentionally unreferenced.** 3.0 cannot switch a response schema on a query parameter, but the generator still emits their types and the frontend needs them. They are typed from the shipped `.conf` templates under `src/static/static/yi-hack/etc/` (ground truth for key lists). Redocly's 6 `no-unused-components` warnings + 1 `info-license` warning are accepted; **errors must stay at zero.**
 - **`get_configs` responses carry a fake trailing `"NULL":"NULL"` key** (avoids a trailing comma in the shell printf). Clients must strip it; the schemas document it.
 
 ## 4. Validation and generation
 
 ```bash
-cd panel
+cd frontend
 npx --yes @redocly/cli@latest lint yi-hack-openapi.yaml   # 0 errors, 7 accepted warnings
 pnpm generate:sdk                                          # hey-api → src/api (wipes the dir)
 pnpm validate                                              # tsc -b && biome check
@@ -52,9 +52,9 @@ YAML trap: an unquoted scalar containing `: ` (colon-space) breaks parsing with 
 
 ### hey-api specifics (pinned `@hey-api/openapi-ts@0.99.0` — pre-1.0, breaking minors; pin exact)
 
-Config: `panel/openapi-ts.config.ts`. Plugins: `@hey-api/client-axios` (with **`baseUrl: false`** — otherwise `servers[0]` gets baked into the client and breaks same-origin deploys), `@hey-api/typescript`, `@hey-api/sdk`, `@tanstack/react-query`, `zod`.
+Config: `frontend/openapi-ts.config.ts`. Plugins: `@hey-api/client-axios` (with **`baseUrl: false`** — otherwise `servers[0]` gets baked into the client and breaks same-origin deploys), `@hey-api/typescript`, `@hey-api/sdk`, `@tanstack/react-query`, `zod`.
 
-Generated layout in `panel/src/api/` (**never hand-edit — `clean: true` wipes it every run**): `types.gen.ts`, `sdk.gen.ts`, `client.gen.ts` (singleton `client`), `zod.gen.ts`, `@tanstack/react-query.gen.ts`, plus the bundled `client/` and `core/` runtime. The barrel `index.ts` re-exports SDK + types only — **import TanStack factories from `@/api/@tanstack/react-query.gen` and zod schemas from `@/api/zod.gen` directly.**
+Generated layout in `frontend/src/api/` (**never hand-edit — `clean: true` wipes it every run**): `types.gen.ts`, `sdk.gen.ts`, `client.gen.ts` (singleton `client`), `zod.gen.ts`, `@tanstack/react-query.gen.ts`, plus the bundled `client/` and `core/` runtime. The barrel `index.ts` re-exports SDK + types only — **import TanStack factories from `@/api/@tanstack/react-query.gen` and zod schemas from `@/api/zod.gen` directly.**
 
 Gotchas verified against 0.99.0:
 
@@ -63,7 +63,7 @@ Gotchas verified against 0.99.0:
 - TanStack factories call the SDK with `throwOnError: true` internally: `useQuery`'s `data` is the unwrapped body; transport errors land in `error` as `AxiosError`.
 - **Logical failures arrive on the success path** (fact 1 above): after any call, check `data.error === "true"`. The response validator is deliberately OFF in the SDK config — the CGI JSON is too loose (unescaped `printf`, fake `NULL` keys) for strict parsing to be safe.
 - Empty 200 bodies become `{}` (`data ?? {}` in the axios client).
-- Runtime wiring (baseURL `""`, axios interceptors, the 2-request concurrency semaphore) lives in `panel/src/lib/api-client.ts`, outside the wiped directory.
+- Runtime wiring (baseURL `""`, axios interceptors, the 2-request concurrency semaphore) lives in `frontend/src/lib/api-client.ts`, outside the wiped directory.
 
 ## 5. Behavioral knowledge the spec encodes (read the descriptions)
 
@@ -91,7 +91,7 @@ git diff <old>..upstream/master -- src/www/httpd/cgi-bin/
 | New `printf` lines in a response | Extend the response schema |
 | `camera_settings.sh` gains a `camera.conf` write | Upstream fixed the persistence bug — keep the two-call save anyway (harmless on fixed firmware, essential on older) |
 
-The firmware **flashed on the camera** is what the panel talks to, not the source in the checkout — expect version skew in both directions and feature-detect (`status.json.ptz`, `HOMEVER`) rather than version-check.
+The firmware **flashed on the camera** is what the frontend talks to, not the source in the checkout — expect version skew in both directions and feature-detect (`status.json.ptz`, `HOMEVER`) rather than version-check.
 
 Not covered by this spec (not CGI): the ONVIF service (`/onvif` is exempted from HTTP auth), RTSP streams, go2rtc (only RTSP listens as configured — no browser-playable stream exists in this firmware), and the MQTT topic tree (would suit AsyncAPI if ever documented).
 
