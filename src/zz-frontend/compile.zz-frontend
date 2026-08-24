@@ -17,7 +17,10 @@ FRONTEND_SRC="$SCRIPT_DIR/../../frontend"
 
 if [ "${SKIP_FRONTEND:-0}" = "1" ]; then
     echo "SKIP_FRONTEND=1 - building an image without the frontend."
-    mkdir -p ./_install/www/frontend
+    # The install step still relocates the stock UI to /panel/, which would
+    # leave the root with no index.html at all. Skipping means skipping both.
+    echo "SKIP_FRONTEND=1" > ./_skip
+    mkdir -p ./_install/www
     exit 0
 fi
 
@@ -48,10 +51,13 @@ if [ ! -d "$FRONTEND_SRC/dist" ]; then
     ( cd "$FRONTEND_SRC" && $PNPM install --frozen-lockfile && $PNPM build )
 fi
 
-mkdir -p ./_install/www/frontend
-rsync -a "$FRONTEND_SRC/dist/" ./_install/www/frontend/
+# Straight into www/: the frontend is the camera's default UI now. The
+# install step relocates the stock UI to www/panel/ first, so the only file
+# these two contend for is index.html, and this module runs last.
+mkdir -p ./_install/www
+rsync -a "$FRONTEND_SRC/dist/" ./_install/www/
 
 echo "Applying GZIP compression to the frontend..."
-find ./_install/www/frontend -type f ! -name '*.gz' -exec gzip -f -9 {} +
+find ./_install/www -type f ! -name '*.gz' -exec gzip -f -9 {} +
 
 echo "Frontend staged."

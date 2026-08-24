@@ -12,7 +12,7 @@ React 19 · TypeScript (strict) · Vite 8 · Mantine 9 (AppShell "alt") · TanSt
 cd frontend
 cp .env.example .env.local     # set CAM_HOST (and CAM_USER/CAM_PASS if auth is on)
 pnpm install
-pnpm dev                       # http://localhost:5173/frontend/
+pnpm dev                       # http://localhost:5173/
 ```
 
 The dev server proxies `/cgi-bin` and `/record` to `CAM_HOST` and injects basic auth — the camera's BusyBox httpd sends no CORS headers, so the browser cannot call it cross-origin directly. Credentials never enter the bundle.
@@ -31,15 +31,17 @@ The mock reproduces the firmware's hostile behaviors (failures as HTTP 200, the 
 ```bash
 pnpm validate      # tsc -b && biome check — run before committing
 pnpm generate:sdk  # regenerate src/api from yi-hack-openapi.yaml (wipes the dir)
-pnpm build         # production build (single bundle, base /frontend/)
-pnpm deploy        # build + rsync to root@$CAM_HOST:/tmp/sd/yi-hack/www/frontend/
+pnpm build         # production build (single bundle, served from /)
+pnpm deploy        # build + rsync to root@$CAM_HOST:/tmp/sd/yi-hack/www/
 ```
 
 `deploy` uses `rsync --delete` on purpose: Vite emits content-hashed filenames and plain `scp` would leave every previous bundle on the SD card forever.
 
 ## On the camera
 
-The frontend is served by the camera at `http://CAM_IP/frontend/`. **The stock UI stays at `/`** — it is the fallback when a deploy goes wrong. Do not delete or overwrite it.
+The frontend is the camera's default UI, served at `http://CAM_IP/`. **The stock UI moves to `/panel/`** and remains the fallback when a deploy goes wrong — do not delete it.
+
+Because the frontend shares the document root with the firmware's own `www` tree (`cgi-bin`, `pages`, `js`, `css`, `img`, `panel`), `pnpm deploy` scopes its `--delete` to `assets/`. A `--delete` against the root would erase the CGI scripts the camera is driven by.
 
 ## Where the knowledge lives
 
