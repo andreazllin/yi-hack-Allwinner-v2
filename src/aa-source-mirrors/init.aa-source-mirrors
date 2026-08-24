@@ -1,0 +1,16 @@
+#!/bin/bash
+# Pre-fetches third-party source archives that the modules below download for
+# themselves, when the canonical host is unreachable from the build machine.
+#
+# The aa- prefix is load-bearing: scripts/compile.sh walks src/* in glob order,
+# so this has to sort before every module whose sources it stages. Renaming it
+# to something later means the modules run first and hit the broken download.
+#
+# Nothing upstream is modified. Each archive is written into the module's own
+# directory under the exact filename that module already checks for, so the
+# module skips its own download and behaves as if the fetch had succeeded.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+rm -rf ./_install
