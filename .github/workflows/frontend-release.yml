@@ -10,9 +10,11 @@
 # at build time only, which is enough because pack_fw.sh reads it with
 # `cat VERSION`.
 #
-# The frontend itself is baked in by src/frontend/, a build module that
+# The frontend itself is baked in by src/zz-frontend/, a build module that
 # scripts/compile.sh picks up automatically (it loops over src/*), so no
-# upstream file is modified anywhere in this pipeline.
+# upstream file is modified anywhere in this pipeline. That module also
+# relocates the stock UI to /panel/, which is why the frontend ends up at the
+# document root.
 #
 # Filename carries the `frontend-` prefix per the fork's convention, so it can
 # never collide with an upstream workflow.
@@ -167,8 +169,12 @@ jobs:
             Fork build of upstream **${{ steps.version.outputs.base }}** with the
             replacement frontend UI baked in, from commit ${{ github.sha }}.
 
-            The frontend is served at `http://<camera>/frontend/`. The stock UI stays
-            at `/` and is the fallback if the frontend misbehaves.
+            The frontend is the camera's default UI, served at `http://<camera>/`.
+            The stock UI moves to `http://<camera>/panel/` and remains the
+            fallback if the frontend misbehaves.
+
+            Migrating from upstream's firmware? The camera's own updater cannot
+            make that jump — see `docs/MIGRATION.md`.
 
             Untested against hardware by CI — it builds the image, it does not
             flash one.

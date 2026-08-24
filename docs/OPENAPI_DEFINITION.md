@@ -78,7 +78,7 @@ Gotchas verified against 0.99.0:
 
 `fw_upgrade.sh` asks GitHub for the latest release of the repo it was compiled against, compares that tag with `/tmp/sd/yi-hack/version`, and downloads `<model_suffix>_<tag>.tgz`. The payload is the **whole yi-hack tree**, so an update ships the firmware and the frontend together — that is what makes the frontend updatable over the air at all.
 
-Left pointing at upstream this is actively harmful: a camera running `0.3.6_<hash>` sees upstream's `0.3.6`, decides the versions differ, and installs upstream's image — replacing the fork and leaving `www/frontend/` behind as a stale orphan (`system.sh` completes an upgrade with `cp -rf * ..`, an overlay, so the directory survives but nothing maintains it).
+Left pointing at upstream this is actively harmful: a camera running `0.3.6_<hash>` sees upstream's `0.3.6`, decides the versions differ, and installs upstream's image — replacing the fork. `system.sh` completes an upgrade with `cp -rf * ..`, an overlay that removes nothing, so the result is a mess rather than a clean revert: upstream's `index.html` takes the document root back and its `js/`, `css/`, `pages/` and `img/` reappear there, while the frontend's `assets/` and the relocated stock UI under `panel/` are left behind as orphans nothing maintains.
 
 `src/zz-fork-overrides/` rewrites the three release URLs at build time, deriving the file from upstream's current source rather than vendoring a copy, so an upstream edit to `fw_upgrade.sh` is inherited instead of silently reverted. The slug comes from `FORK_REPO`, else `GITHUB_REPOSITORY` in CI, else the `origin` remote.
 
