@@ -3,4 +3,4 @@
 SCRIPT_DIR=$(cd `dirname $0` && pwd)
 cd $SCRIPT_DIR
 
-rm -rf ./_install
+rm -rf ./_install ./_skip

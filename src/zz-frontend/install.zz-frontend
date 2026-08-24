@@ -1,0 +1,85 @@
+#!/bin/bash
+# Puts the frontend at the document root and moves the stock UI to /panel/.
+#
+# Ordering: scripts/compile.sh runs init/compile/install for one module before
+# starting the next, so src/www has already installed its tree into
+# build/yi-hack/www by the time this runs. That is what makes relocating it
+# here possible without touching a single upstream file.
+#
+# The stock UI addresses everything relatively ("cgi-bin/status.json",
+# "record/<dir>/<file>"), which breaks the moment it is served from a
+# subdirectory. cgi-bin is the fatal one: busybox httpd only treats a request
+# as CGI when the path starts with "cgi-bin/" immediately after the leading
+# slash (networking/httpd.c, `is_prefixed_with(tptr, "cgi-bin/")` where
+# tptr = urlcopy + 1). From /panel/ those requests would not execute at all —
+# the shell source would be served as a static file. So the two prefixes that
+# have to escape the subdirectory are rewritten to absolute paths.
+#
+# Everything else the stock UI references (js/, css/, img/, pages/) moves with
+# it, so those relative URLs stay correct.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+set -e
+
+if [ -f ./_skip ]; then
+    rm -f ./_skip
+    echo "SKIP_FRONTEND=1 - leaving the stock UI at the document root."
+    exit 0
+fi
+
+WWW="../../build/yi-hack/www"
+
+if [ ! -d "$WWW" ]; then
+    echo "ERROR: $WWW does not exist - src/www has not installed yet."
+    echo "This module must sort AFTER 'www' in scripts/compile.sh's src/* walk."
+    exit 1
+fi
+
+# Only the stock UI's own files move. cgi-bin stays at the root: it is shared
+# by both UIs and is the one path busybox will execute.
+STOCK="index.html.gz pages js css img"
+
+mkdir -p "$WWW/panel"
+for ITEM in $STOCK; do
+    if [ -e "$WWW/$ITEM" ]; then
+        rm -rf "$WWW/panel/$ITEM"
+        mv "$WWW/$ITEM" "$WWW/panel/$ITEM"
+    fi
+done
+
+if [ ! -f "$WWW/panel/index.html.gz" ]; then
+    echo "ERROR: no index.html.gz found to relocate - the stock UI would be lost."
+    exit 1
+fi
+
+# Rewrite the two escaping prefixes. Text assets only: running sed over the
+# gzipped PNGs under img/ would corrupt them.
+REWRITTEN=0
+for FILE in $(find "$WWW/panel" -type f \( -name '*.html.gz' -o -name '*.js.gz' -o -name '*.css.gz' \)); do
+    PLAIN="${FILE%.gz}"
+    # Piped rather than sed -i: the -i flag needs a backup-suffix argument on
+    # BSD sed and must not have one on GNU sed, so it is not portable between
+    # a Mac and the build runners.
+    # Quoted patterns so only URL literals are touched, never a bare word.
+    gunzip -c "$FILE" \
+        | sed -e "s#'cgi-bin/#'/cgi-bin/#g" -e 's#"cgi-bin/#"/cgi-bin/#g' \
+              -e "s#'record/#'/record/#g"   -e 's#"record/#"/record/#g' \
+        > "$PLAIN"
+    rm -f "$FILE"
+    gzip -9 "$PLAIN"
+    REWRITTEN=$((REWRITTEN + 1))
+done
+echo "Relocated the stock UI to /panel/ ($REWRITTEN text assets re-addressed)."
+
+# Anything still pointing at a relative cgi-bin/ would 404 as a static file.
+for FILE in $(find "$WWW/panel" -type f -name '*.js.gz'); do
+    if gunzip -c "$FILE" | grep -qE "['\"]cgi-bin/"; then
+        echo "ERROR: $(basename "$FILE") still has a relative cgi-bin/ reference."
+        exit 1
+    fi
+done
+
+mkdir -p ../../build/yi-hack/
+rsync -a ./_install/* ../../build/yi-hack/

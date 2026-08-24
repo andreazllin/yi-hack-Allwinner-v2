@@ -122,11 +122,25 @@ jobs:
       - name: Confirm the frontend is in the image
         run: |
           # A release whose whole purpose is the frontend must not ship without it.
-          if ! ls build/yi-hack/www/frontend/index.html.gz >/dev/null 2>&1; then
-            echo "::error::build/yi-hack/www/frontend/index.html.gz missing - the frontend was not baked in."
+          # The frontend is the document root now, and the stock UI must still
+          # be reachable at /panel/ as the fallback when the frontend misbehaves.
+          if ! ls build/yi-hack/www/index.html.gz >/dev/null 2>&1; then
+            echo "::error::build/yi-hack/www/index.html.gz missing - the frontend is not at the document root."
             exit 1
           fi
-          echo "frontend present: $(find build/yi-hack/www/frontend -type f | wc -l) files"
+          if ! ls build/yi-hack/www/panel/index.html.gz >/dev/null 2>&1; then
+            echo "::error::build/yi-hack/www/panel/index.html.gz missing - the stock UI fallback was lost."
+            exit 1
+          fi
+          # busybox only executes CGI at /cgi-bin/, so a relative reference
+          # left in the relocated stock UI would be served as source instead.
+          for F in $(find build/yi-hack/www/panel -name '*.js.gz'); do
+            if gunzip -c "$F" | grep -qE "['\"]cgi-bin/"; then
+              echo "::error::$F still has a relative cgi-bin/ reference; the stock UI would be broken at /panel/."
+              exit 1
+            fi
+          done
+          echo "frontend at /: $(find build/yi-hack/www -maxdepth 1 -type f | wc -l) files; stock UI at /panel/: $(find build/yi-hack/www/panel -type f | wc -l) files"
 
       - name: Check the version label landed
         run: |

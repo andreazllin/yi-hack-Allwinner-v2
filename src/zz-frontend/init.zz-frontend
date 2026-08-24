@@ -1,0 +1,18 @@
+#!/bin/bash
+# Bakes the frontend into the firmware image as the camera's default UI,
+# and relocates the stock UI to /panel/.
+#
+# scripts/compile.sh loops over every directory in src/* and runs
+# init.<name>, compile.<name>, install.<name> inside it. That loop is generic,
+# so this module is picked up automatically and NO upstream file is modified —
+# the fork stays additive and rebasing stays a no-op.
+#
+# The zz- prefix is load-bearing: each module's install rsyncs over the
+# previous one, and this module has to win the index.html at the document
+# root, so it must sort AFTER "www". Rename it earlier and the stock UI
+# silently takes the root back.
+
+SCRIPT_DIR=$(cd `dirname $0` && pwd)
+cd $SCRIPT_DIR
+
+rm -rf ./_install ./_skip
