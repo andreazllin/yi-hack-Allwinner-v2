@@ -1,13 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { FunctionComponent } from "react";
-import { PagePlaceholder } from "@/components/page-placeholder";
+import { type FunctionComponent, useMemo } from "react";
+import { SystemConfigForm } from "@/features/configurations/components/system-config-form";
+import { configurationCards } from "@/features/configurations/constants/configuration-cards";
+import { configurationsSchema } from "@/features/configurations/helpers/schemas";
+import { useGo2rtcSupport } from "@/features/configurations/hooks/use-go2rtc-support";
 
-const ConfigurationsPage: FunctionComponent = () => (
-	<PagePlaceholder
-		title="System Configuration"
-		description="Core firmware services and options."
-	/>
-);
+const ConfigurationsPage: FunctionComponent = () => {
+	// Absent or unreadable status.json keeps the option, like the stock page:
+	// it drops go2rtc only on an explicit "no".
+	const { data: go2rtcSupported } = useGo2rtcSupport();
+	const cards = useMemo(
+		() => configurationCards({ go2rtcSupported: go2rtcSupported ?? true }),
+		[go2rtcSupported],
+	);
+
+	return (
+		<SystemConfigForm
+			title="System Configuration"
+			description="Services, hostname and timezone, cloud, snapshots and time-lapse, ports, credentials, crontab and debug — all stored in system.conf."
+			cards={cards}
+			surface="System configuration"
+			schema={configurationsSchema}
+		/>
+	);
+};
 
 export const Route = createFileRoute("/configurations")({
 	component: ConfigurationsPage,
