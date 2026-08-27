@@ -3,7 +3,6 @@ import {
 	ArrowsOutCardinal,
 	Broadcast,
 	Camera,
-	Clock,
 	FilmStrip,
 	Gauge,
 	GearSix,
@@ -69,7 +68,6 @@ export const NAV_SECTIONS: NavSection[] = [
 		items: [
 			{ label: "Static IP", to: "/static-ip", icon: Globe },
 			{ label: "WiFi", to: "/wifi", icon: WifiHigh },
-			{ label: "Time Zone", to: "/tz", icon: Clock },
 			{ label: "Proxy", to: "/proxy", icon: ArrowsLeftRight },
 		],
 	},
