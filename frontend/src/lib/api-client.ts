@@ -1,8 +1,11 @@
 import { client } from "@/api/client.gen";
+import { CAMERA_BASE_URL } from "@/lib/camera-url";
 
 // Same-origin: in production the frontend is served by the camera itself, and in
 // dev the Vite proxy maps /cgi-bin and /record to CAM_HOST (vite.config.ts).
-client.setConfig({ baseURL: "" });
+// CAMERA_BASE_URL is "" in both of those; it is only non-empty in the Pages
+// demo build, which serves the app from a subpath.
+client.setConfig({ baseURL: CAMERA_BASE_URL });
 
 // Concurrency cap. TanStack Query has no global limit, and every request to
 // /cgi-bin forks a shell on a slow SoC — upstream's README warns the camera

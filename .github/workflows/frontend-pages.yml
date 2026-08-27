@@ -1,0 +1,88 @@
+# Live demo of the frontend on GitHub Pages, rebuilt on every push to the
+# default branch.
+#
+# There is no camera behind it: `pnpm build:demo` bakes in the mock from
+# frontend/mock/camera-core.mjs — the same emulation `node mock/camera.mjs`
+# serves in development — and runs it in a Service Worker. That is also why the
+# demo build is a separate build: the firmware image must never carry a mock.
+#
+# One-time repository setting this workflow cannot make for itself:
+# Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+#
+# Filename carries the `frontend-` prefix per the fork's convention, so it can
+# never collide with an upstream workflow.
+name: frontend-pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only the newest commit's demo is worth deploying.
+concurrency:
+  group: frontend-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Pages serves the site from /<repo>/, and the app's base has to match:
+      # asset URLs, the Service Worker's scope and every camera URL are all
+      # derived from it. Read from the environment rather than hardcoded, so a
+      # fork deploys under its own name with no edit.
+      - name: Build the demo
+        run: pnpm build:demo --base=/${GITHUB_REPOSITORY#*/}/
+
+      - name: Confirm the demo is actually mocked
+        run: |
+          # A demo that lost its worker looks identical until every request
+          # fails against github.io, so check rather than assume.
+          if [ ! -f dist/mockServiceWorker.js ]; then
+            echo "::error::dist/mockServiceWorker.js missing - the demo has no mock."
+            exit 1
+          fi
+          if ! grep -q "/${GITHUB_REPOSITORY#*/}/assets/" dist/index.html; then
+            echo "::error::dist/index.html does not reference /${GITHUB_REPOSITORY#*/}/assets/ - the base is wrong and nothing will load."
+            exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
