@@ -23,7 +23,6 @@ import { Route as SpeakRouteImport } from './routes/speak'
 import { Route as StaticIpRouteImport } from './routes/static-ip'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as TimelapseRouteImport } from './routes/timelapse'
-import { Route as TzRouteImport } from './routes/tz'
 import { Route as WifiRouteImport } from './routes/wifi'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsDirRouteImport } from './routes/events.$dir'
@@ -98,11 +97,6 @@ const TimelapseRoute = TimelapseRouteImport.update({
   path: '/timelapse',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TzRoute = TzRouteImport.update({
-  id: '/tz',
-  path: '/tz',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WifiRoute = WifiRouteImport.update({
   id: '/wifi',
   path: '/wifi',
@@ -134,7 +128,6 @@ export interface FileRoutesByFullPath {
   '/static-ip': typeof StaticIpRoute
   '/status': typeof StatusRoute
   '/timelapse': typeof TimelapseRoute
-  '/tz': typeof TzRoute
   '/wifi': typeof WifiRoute
   '/events/$dir': typeof EventsDirRoute
   '/events/': typeof EventsIndexRoute
@@ -154,7 +147,6 @@ export interface FileRoutesByTo {
   '/static-ip': typeof StaticIpRoute
   '/status': typeof StatusRoute
   '/timelapse': typeof TimelapseRoute
-  '/tz': typeof TzRoute
   '/wifi': typeof WifiRoute
   '/events/$dir': typeof EventsDirRoute
   '/events': typeof EventsIndexRoute
@@ -175,7 +167,6 @@ export interface FileRoutesById {
   '/static-ip': typeof StaticIpRoute
   '/status': typeof StatusRoute
   '/timelapse': typeof TimelapseRoute
-  '/tz': typeof TzRoute
   '/wifi': typeof WifiRoute
   '/events/$dir': typeof EventsDirRoute
   '/events/': typeof EventsIndexRoute
@@ -197,7 +188,6 @@ export interface FileRouteTypes {
     | '/static-ip'
     | '/status'
     | '/timelapse'
-    | '/tz'
     | '/wifi'
     | '/events/$dir'
     | '/events/'
@@ -217,7 +207,6 @@ export interface FileRouteTypes {
     | '/static-ip'
     | '/status'
     | '/timelapse'
-    | '/tz'
     | '/wifi'
     | '/events/$dir'
     | '/events'
@@ -237,7 +226,6 @@ export interface FileRouteTypes {
     | '/static-ip'
     | '/status'
     | '/timelapse'
-    | '/tz'
     | '/wifi'
     | '/events/$dir'
     | '/events/'
@@ -258,7 +246,6 @@ export interface RootRouteChildren {
   StaticIpRoute: typeof StaticIpRoute
   StatusRoute: typeof StatusRoute
   TimelapseRoute: typeof TimelapseRoute
-  TzRoute: typeof TzRoute
   WifiRoute: typeof WifiRoute
   EventsDirRoute: typeof EventsDirRoute
   EventsIndexRoute: typeof EventsIndexRoute
@@ -364,13 +351,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TimelapseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tz': {
-      id: '/tz'
-      path: '/tz'
-      fullPath: '/tz'
-      preLoaderRoute: typeof TzRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/wifi': {
       id: '/wifi'
       path: '/wifi'
@@ -410,7 +390,6 @@ const rootRouteChildren: RootRouteChildren = {
   StaticIpRoute: StaticIpRoute,
   StatusRoute: StatusRoute,
   TimelapseRoute: TimelapseRoute,
-  TzRoute: TzRoute,
   WifiRoute: WifiRoute,
   EventsDirRoute: EventsDirRoute,
   EventsIndexRoute: EventsIndexRoute,

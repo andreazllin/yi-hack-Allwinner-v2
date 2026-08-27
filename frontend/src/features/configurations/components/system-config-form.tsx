@@ -23,6 +23,7 @@ import {
 } from "react";
 import { ErrorState } from "@/components/data-state/error-state";
 import { RebootPromptModal } from "@/features/configurations/components/reboot-prompt-modal";
+import { TimezoneSelect } from "@/features/configurations/components/timezone-select";
 import {
 	type CardSpec,
 	type ConfigFormValues,
@@ -134,6 +135,10 @@ export const SystemConfigForm: FunctionComponent<Props> = ({
 									}
 								}}
 							/>
+						);
+					case "timezone":
+						return (
+							<TimezoneSelect {...inputProps} onChange={field.handleChange} />
 						);
 					case "password":
 						return (

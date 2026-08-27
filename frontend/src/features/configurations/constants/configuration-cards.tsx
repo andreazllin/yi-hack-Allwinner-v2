@@ -58,18 +58,11 @@ export function configurationCards({ go2rtcSupported }: Params): CardSpec[] {
 						"Camera's hostname on the network. Leave blank to generate one automatically.",
 				},
 				{
-					kind: "text",
+					kind: "timezone",
 					key: "TIMEZONE",
 					label: "Timezone",
-					description: (
-						<>
-							POSIX timezone string. Look yours up on the{" "}
-							<Anchor component={Link} to="/tz" inherit>
-								Time Zone
-							</Anchor>{" "}
-							page and copy it here.
-						</>
-					),
+					description:
+						"POSIX timezone string, saved exactly as listed. Search by city: several hundred locations share these strings, and each option lists the ones it covers.",
 				},
 				{
 					kind: "switch",

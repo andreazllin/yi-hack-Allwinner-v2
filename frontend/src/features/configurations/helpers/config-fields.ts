@@ -14,6 +14,8 @@ type FieldBase = {
 
 export type FieldSpec =
 	| (FieldBase & { kind: "switch" | "text" | "password" })
+	// Owns its own option list (the stock timezone table), so it carries none.
+	| (FieldBase & { kind: "timezone" })
 	| (FieldBase & { kind: "textarea"; rows: number })
 	| (FieldBase & {
 			kind: "select";
