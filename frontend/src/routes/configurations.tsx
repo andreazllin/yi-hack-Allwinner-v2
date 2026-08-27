@@ -4,6 +4,7 @@ import { SystemConfigForm } from "@/features/configurations/components/system-co
 import { configurationCards } from "@/features/configurations/constants/configuration-cards";
 import { configurationsSchema } from "@/features/configurations/helpers/schemas";
 import { useGo2rtcSupport } from "@/features/configurations/hooks/use-go2rtc-support";
+import { pageTitle } from "@/lib/page-title";
 
 const ConfigurationsPage: FunctionComponent = () => {
 	// Absent or unreadable status.json keeps the option, like the stock page:
@@ -26,5 +27,6 @@ const ConfigurationsPage: FunctionComponent = () => {
 };
 
 export const Route = createFileRoute("/configurations")({
+	head: () => ({ meta: [{ title: pageTitle("System") }] }),
 	component: ConfigurationsPage,
 });

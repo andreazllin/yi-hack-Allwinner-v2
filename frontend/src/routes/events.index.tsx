@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionComponent } from "react";
 import { EventDirsCard } from "@/features/events/components/event-dirs-card";
 import { RecordingSettingsCard } from "@/features/events/components/recording-settings-card";
+import { pageTitle } from "@/lib/page-title";
 
 const EventsPage: FunctionComponent = () => (
 	<Stack gap="md">
@@ -13,5 +14,6 @@ const EventsPage: FunctionComponent = () => (
 );
 
 export const Route = createFileRoute("/events/")({
+	head: () => ({ meta: [{ title: pageTitle("Events") }] }),
 	component: EventsPage,
 });
