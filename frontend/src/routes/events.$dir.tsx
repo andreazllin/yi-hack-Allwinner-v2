@@ -5,6 +5,7 @@ import type { FunctionComponent } from "react";
 import { ErrorState } from "@/components/data-state/error-state";
 import { EventFilesCard } from "@/features/events/components/event-files-card";
 import { isEventDirName } from "@/features/events/helpers/event-paths";
+import { pageTitle } from "@/lib/page-title";
 
 const EventsDirPage: FunctionComponent = () => {
 	const { dir } = Route.useParams();
@@ -36,5 +37,8 @@ const EventsDirPage: FunctionComponent = () => {
 };
 
 export const Route = createFileRoute("/events/$dir")({
+	head: ({ params }) => ({
+		meta: [{ title: pageTitle(params.dir, "Events") }],
+	}),
 	component: EventsDirPage,
 });

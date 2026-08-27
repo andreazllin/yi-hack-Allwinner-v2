@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionComponent } from "react";
 import { SystemConfigForm } from "@/features/configurations/components/system-config-form";
 import { ONVIF_CARDS } from "@/features/configurations/constants/onvif-cards";
+import { pageTitle } from "@/lib/page-title";
 
 const ConfigurationsOnvifPage: FunctionComponent = () => (
 	<SystemConfigForm
@@ -13,5 +14,6 @@ const ConfigurationsOnvifPage: FunctionComponent = () => (
 );
 
 export const Route = createFileRoute("/configurations-onvif")({
+	head: () => ({ meta: [{ title: pageTitle("ONVIF") }] }),
 	component: ConfigurationsOnvifPage,
 });
