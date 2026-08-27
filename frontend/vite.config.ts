@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
@@ -12,6 +13,10 @@ export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), "");
 	const camHost = env.CAM_HOST ?? "192.168.10.211";
 	const target = camHost.startsWith("http") ? camHost : `http://${camHost}`;
+
+	// `pnpm build:demo` (mode "demo") builds the GitHub Pages demo: no camera,
+	// the mock from mock/camera-core.mjs running in a Service Worker.
+	const isDemo = env.VITE_DEMO === "1";
 
 	const camProxy: ProxyOptions = {
 		target,
@@ -29,6 +34,25 @@ export default defineConfig(({ mode }) => {
 			// Must run before react() — wrong order breaks route generation.
 			tanstackRouter({ target: "react" }),
 			react(),
+			// msw's worker script is vendored (mock/mockServiceWorker.js, written
+			// by `msw init`) and has to be served from the app's base, next to
+			// index.html. It is emitted here rather than kept in public/ because
+			// public/ is copied into every build, and a mock service worker must
+			// never reach the camera's SD card.
+			isDemo && {
+				name: "yi-hack-emit-mock-worker",
+				apply: "build" as const,
+				generateBundle() {
+					this.emitFile({
+						type: "asset" as const,
+						fileName: "mockServiceWorker.js",
+						source: readFileSync(
+							path.resolve(import.meta.dirname, "mock/mockServiceWorker.js"),
+							"utf8",
+						),
+					});
+				},
+			},
 		],
 		resolve: {
 			alias: { "@": path.resolve(import.meta.dirname, "./src") },
