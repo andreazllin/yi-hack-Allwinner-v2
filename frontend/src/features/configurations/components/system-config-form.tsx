@@ -22,6 +22,7 @@ import {
 	useRef,
 } from "react";
 import { ErrorState } from "@/components/data-state/error-state";
+import { PasswordStrengthMeter } from "@/features/configurations/components/password-strength-meter";
 import { RebootPromptModal } from "@/features/configurations/components/reboot-prompt-modal";
 import { TimezoneSelect } from "@/features/configurations/components/timezone-select";
 import {
@@ -142,12 +143,23 @@ export const SystemConfigForm: FunctionComponent<Props> = ({
 						);
 					case "password":
 						return (
-							<PasswordInput
-								{...inputProps}
-								onChange={(event) =>
-									field.handleChange(event.currentTarget.value)
-								}
-							/>
+							<>
+								<PasswordInput
+									{...inputProps}
+									onChange={(event) =>
+										field.handleChange(event.currentTarget.value)
+									}
+								/>
+								{/* Only once the field has been edited. get_configs
+								    returns the stored password, so metering the
+								    hydrated value would pull the zxcvbn chunk on
+								    every visit to the page — the thing the dynamic
+								    import exists to avoid — and grade a password the
+								    user has not been asked to change. */}
+								{!field.state.meta.isDefaultValue && (
+									<PasswordStrengthMeter value={field.state.value} />
+								)}
+							</>
 						);
 					case "textarea":
 						return (

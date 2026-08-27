@@ -67,9 +67,13 @@ export default defineConfig(({ mode }) => {
 		build: {
 			rolldownOptions: {
 				output: {
-					// One bundle on purpose: BusyBox httpd sends no Cache-Control or
-					// ETag, so every chunk costs a revalidation round trip per load.
-					codeSplitting: false,
+					// BusyBox httpd sends no Cache-Control or ETag, so every chunk
+					// costs a revalidation round trip per load — the eager app stays
+					// one bundle. Splitting is on only because the app has exactly
+					// one dynamic import (zxcvbn, in password-strength-meter.tsx),
+					// and that round trip is paid on the visit that sets a password
+					// rather than on all of them.
+					codeSplitting: true,
 				},
 			},
 		},
