@@ -7,6 +7,7 @@
 		"preinstall": "npx only-allow pnpm",
 		"dev": "vite",
 		"build": "tsc -b && vite build",
+		"build:demo": "tsc -b && vite build --mode demo",
 		"preview": "vite preview",
 		"lint": "biome check .",
 		"format": "biome format --write .",
@@ -37,11 +38,17 @@
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.4",
+		"msw": "^2.15.0",
 		"postcss": "^8.5.26",
 		"postcss-preset-mantine": "^1.18.0",
 		"postcss-simple-vars": "^7.0.1",
 		"typescript": "~6.0.2",
 		"vite": "^8.2.0"
 	},
-	"packageManager": "pnpm@10.23.0"
+	"packageManager": "pnpm@10.23.0",
+	"msw": {
+		"workerDirectory": [
+			"mock"
+		]
+	}
 }

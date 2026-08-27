@@ -11,6 +11,7 @@ import {
 import { ArrowClockwise } from "@phosphor-icons/react";
 import { type FunctionComponent, useState } from "react";
 import { ErrorState } from "@/components/data-state/error-state";
+import { cameraPath } from "@/lib/camera-url";
 
 type LoadState = "loading" | "loaded" | "error";
 
@@ -25,7 +26,7 @@ export const PreviewCard: FunctionComponent = () => {
 	// responseType json, so the image has to be loaded with a plain <img>.
 	// snapshot.sh ignores unknown params (no else branch), so `_` never
 	// reaches the firmware logic — it only defeats the browser cache.
-	const src = `/cgi-bin/snapshot.sh?res=low&_=${cacheBust}`;
+	const src = cameraPath(`/cgi-bin/snapshot.sh?res=low&_=${cacheBust}`);
 
 	const refresh = () => {
 		setLoadState("loading");

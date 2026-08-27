@@ -7,7 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!src/api", "!src/routeTree.gen.ts"]
+		"includes": [
+			"**",
+			"!src/api",
+			"!src/routeTree.gen.ts",
+			"!mock/mockServiceWorker.js"
+		]
 	},
 	"formatter": {
 		"enabled": true,

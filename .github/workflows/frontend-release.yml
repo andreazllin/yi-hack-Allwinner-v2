@@ -134,6 +134,20 @@ jobs:
             echo "::error::build/yi-hack/www/panel/index.html.gz missing - the stock UI fallback was lost."
             exit 1
           fi
+          # The Pages demo (frontend-pages.yml) bundles a mock camera behind a
+          # Service Worker. In firmware that worker would sit between the UI
+          # and the real camera and answer every request itself, so it must
+          # never be in this image.
+          if ls build/yi-hack/www/mockServiceWorker.js* >/dev/null 2>&1; then
+            echo "::error::mockServiceWorker.js is in the image - the demo build was packed instead of the firmware build."
+            exit 1
+          fi
+          for F in $(find build/yi-hack/www -maxdepth 2 -name 'index-*.js.gz'); do
+            if gunzip -c "$F" | grep -q "mockServiceWorker"; then
+              echo "::error::$F references mockServiceWorker - the mock leaked into the firmware bundle."
+              exit 1
+            fi
+          done
           # busybox only executes CGI at /cgi-bin/, so a relative reference
           # left in the relocated stock UI would be served as source instead.
           for F in $(find build/yi-hack/www/panel -name '*.js.gz'); do

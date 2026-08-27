@@ -45,6 +45,15 @@ declare module "@tanstack/react-router" {
 	}
 }
 
+// Demo build only (GitHub Pages): the camera is emulated by a Service Worker,
+// which must be in control before the first query fires — hence the await here
+// rather than inside a component. VITE_DEMO is replaced at build time, so the
+// firmware bundle drops this branch and never pulls msw in.
+if (import.meta.env.VITE_DEMO === "1") {
+	const { startMockCamera } = await import("@/lib/mock/start");
+	await startMockCamera();
+}
+
 const rootElement = document.getElementById("root");
 if (!rootElement) {
 	throw new Error("#root element missing from index.html");

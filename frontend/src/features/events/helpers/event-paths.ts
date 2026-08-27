@@ -1,3 +1,5 @@
+import { cameraPath } from "@/lib/camera-url";
+
 // eventsdir.sh only emits directories whose name is exactly 14 chars long in
 // the form YYYY"Y"MM"M"DD"D"HH"H", e.g. "2024Y08M24D15H" (one per hour).
 const EVENT_DIR_PATTERN = /^\d{4}Y\d{2}M\d{2}D\d{2}H$/;
@@ -17,7 +19,7 @@ export function isEventDirName(value: string): boolean {
 // loaded by the browser with <img>/<video>/<a download>, never through the
 // generated SDK, which hardcodes responseType "json" for binary responses.
 export function buildRecordUrl(dir: string, filename: string): string {
-	return `/record/${dir}/${filename}`;
+	return cameraPath(`/record/${dir}/${filename}`);
 }
 
 // eventsfile.sh only lists recordings whose name is exactly 12 or 14 chars and

@@ -1,4 +1,5 @@
 import type { GetSnapshotData, YesNo } from "@/api";
+import { cameraPath } from "@/lib/camera-url";
 
 // Derived from the generated query type so the literal union stays tied to
 // the spec instead of being restated by hand.
@@ -21,5 +22,5 @@ export function buildSnapshotUrl(
 		// silently (no else branch), so "_" never reaches the firmware logic.
 		params.set("_", String(cacheBust));
 	}
-	return `/cgi-bin/snapshot.sh?${params.toString()}`;
+	return cameraPath(`/cgi-bin/snapshot.sh?${params.toString()}`);
 }

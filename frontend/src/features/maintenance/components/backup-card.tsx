@@ -17,6 +17,7 @@ import {
 	parseRestoreResult,
 } from "@/features/maintenance/helpers/restore";
 import { useRestoreConfig } from "@/features/maintenance/hooks/use-restore-config";
+import { cameraPath } from "@/lib/camera-url";
 
 type Props = {
 	// Reported upward so the other cards can lock while this one holds the
@@ -62,7 +63,7 @@ export const BackupCard: FunctionComponent<Props> = ({
 					    hand-roll an object URL to get the same download. */}
 					<Button
 						component="a"
-						href="/cgi-bin/save.sh"
+						href={cameraPath("/cgi-bin/save.sh")}
 						download="config.tar.bz2"
 						variant="default"
 						leftSection={<DownloadSimple size={16} />}
