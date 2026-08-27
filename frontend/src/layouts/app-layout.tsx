@@ -10,6 +10,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import type { FunctionComponent, ReactNode } from "react";
 import { ColorSchemeToggle } from "@/components/layout/color-scheme-toggle";
+import { DemoBadge } from "@/components/layout/demo-badge";
 import { RouterNavLink } from "@/components/layout/router-nav-link";
 import { NAV_SECTIONS } from "@/constants/navigation";
 
@@ -30,7 +31,10 @@ export const AppLayout: FunctionComponent<Props> = ({ children }) => {
 			<AppShell.Header>
 				<Group h="100%" px="md" justify="space-between">
 					<Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-					<ColorSchemeToggle />
+					<Group gap="sm" ml="auto">
+						<DemoBadge />
+						<ColorSchemeToggle />
+					</Group>
 				</Group>
 			</AppShell.Header>
 			<AppShell.Navbar>
