@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionComponent } from "react";
 import { AudioCard } from "@/features/speak/components/audio-card";
 import { TtsCard } from "@/features/speak/components/tts-card";
+import { pageTitle } from "@/lib/page-title";
 
 const SpeakPage: FunctionComponent = () => (
 	<Stack gap="md">
@@ -17,5 +18,6 @@ const SpeakPage: FunctionComponent = () => (
 );
 
 export const Route = createFileRoute("/speak")({
+	head: () => ({ meta: [{ title: pageTitle("Speak") }] }),
 	component: SpeakPage,
 });
