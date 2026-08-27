@@ -33,7 +33,7 @@ The emulation itself lives in `mock/camera-core.mjs` and knows nothing about tra
 ```bash
 pnpm validate      # tsc -b && biome check — run before committing
 pnpm generate:sdk  # regenerate src/api from yi-hack-openapi.yaml (wipes the dir)
-pnpm build         # production build (single bundle, served from /)
+pnpm build         # production build (one bundle + the lazy zxcvbn chunk, served from /)
 pnpm build:demo    # mocked build for GitHub Pages (see below)
 pnpm deploy        # build + rsync to root@$CAM_HOST:/tmp/sd/yi-hack/www/
 ```
